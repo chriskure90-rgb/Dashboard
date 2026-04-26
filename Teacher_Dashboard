@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Intelligence Dashboard</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117; --surface: #1a1d27; --card: #20242f;
+    --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.12);
+    --text: #e8eaf0; --muted: #7a7f94;
+    --blue: #378ADD; --green: #1D9E75; --amber: #EF9F27;
+    --res-bg: #1a2a0d; --res-t: #8ecf4a;
+    --sur-bg: #2a1f08; --sur-t: #f0a830;
+    --tri-bg: #0a1d33; --tri-t: #5aabf0;
+    --success: #1D9E75;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; font-size: 13px; line-height: 1.5; min-height: 100vh; }
+
+  header { padding: 16px 22px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 0.5px solid var(--border); margin-bottom: 14px; }
+  .logo { font-size: 13px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); }
+  .header-meta { font-size: 11px; color: var(--muted); }
+
+  /* Left column (class + student), Right column (AI) */
+  #dash { display: grid; grid-template-columns: 300px 1fr; grid-template-rows: auto auto; gap: 10px; padding: 0 18px 20px; }
+  .pnl { background: var(--surface); border: 0.5px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .rspan { grid-column: 2; grid-row: 1 / 3; display: flex; flex-direction: column; }
+
+  .ptitle { font-size: 9.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin: 0 0 10px; }
+  hr.rule { border: none; border-top: 0.5px solid var(--border); margin: 12px 0 10px; }
+
+  .leg { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; font-size: 10.5px; color: var(--muted); align-items: center; }
+  .li { display: flex; align-items: center; gap: 5px; }
+
+  select { background: var(--card); border: 0.5px solid var(--border2); border-radius: 6px; color: var(--text); padding: 7px 10px; font-size: 12px; width: 100%; cursor: pointer; outline: none; font-family: 'JetBrains Mono', monospace; }
+  select:focus { border-color: var(--blue); }
+
+  .badge { display: inline-flex; padding: 3px 10px; border-radius: 20px; font-size: 10.5px; font-weight: 500; margin-bottom: 10px; }
+  .b-res { background: var(--res-bg); color: var(--res-t); }
+  .b-sur { background: var(--sur-bg); color: var(--sur-t); }
+  .b-tri { background: var(--tri-bg); color: var(--tri-t); }
+
+  .estat { background: var(--card); border: 0.5px solid var(--border); border-radius: 7px; padding: 8px 10px; margin-bottom: 5px; }
+  .elabel { font-size: 9.5px; color: var(--muted); margin-bottom: 2px; }
+  .evalue { font-size: 18px; font-weight: 500; color: var(--text); font-family: 'JetBrains Mono', monospace; }
+
+  .aipanel { flex: 1; display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+  .ai-sec { background: var(--card); border: 0.5px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+  .ai-stitle { font-size: 9.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 7px; }
+  .ai-body { font-size: 12.5px; line-height: 1.7; color: var(--text); }
+  .act-item { display: flex; gap: 8px; padding: 7px 0; border-bottom: 0.5px solid var(--border); font-size: 12px; line-height: 1.6; color: var(--text); }
+  .act-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .act-num { flex-shrink: 0; width: 18px; height: 18px; background: rgba(55,138,221,0.15); color: var(--blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; }
+  .mastery-sec { border-color: rgba(29,158,117,0.35) !important; }
+  .mastery-title { color: var(--success) !important; }
+
+  @keyframes pulse { 0%,100%{opacity:.3} 50%{opacity:1} }
+  .loading { color: var(--muted); font-size: 12px; animation: pulse 1.5s ease-in-out infinite; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><span class="logo-dot"></span>Teacher Intelligence Dashboard</div>
+  <div class="header-meta">Session: Nov 12, 2024 &nbsp;·&nbsp; Class: 3 students</div>
+</header>
+
+<div id="dash">
+
+  <!-- TOP LEFT: Class Overview -->
+  <div class="pnl" style="grid-column:1;grid-row:1">
+    <p class="ptitle">Class Trends — Rubric Criteria Averages</p>
+    <div class="leg">
+      <span class="li"><svg width="16" height="8"><line x1="0" y1="4" x2="16" y2="4" stroke="#378ADD" stroke-width="2"/></svg>Interpreting</span>
+      <span class="li"><svg width="16" height="8"><line x1="0" y1="4" x2="16" y2="4" stroke="#1D9E75" stroke-width="2" stroke-dasharray="4,2"/></svg>Action Plan</span>
+      <span class="li"><svg width="16" height="8"><line x1="0" y1="4" x2="16" y2="4" stroke="#EF9F27" stroke-width="2" stroke-dasharray="2,2"/></svg>Resource</span>
+    </div>
+    <div style="position:relative;height:130px">
+      <canvas id="trendChart" role="img" aria-label="Line chart of class average rubric scores over 8 weeks, all trending upward">Rubric averages rise across 8 weeks.</canvas>
+    </div>
+    <hr class="rule">
+    <p class="ptitle">Learner Distribution</p>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="position:relative;height:82px;width:82px;flex-shrink:0">
+        <canvas id="donutChart" role="img" aria-label="Donut chart: 33% Resourceful, 33% Surface Checker, 33% Trial and Error">Equal split across three learner types.</canvas>
+      </div>
+      <div style="font-size:10.5px;color:var(--muted);display:flex;flex-direction:column;gap:5px">
+        <span class="li"><svg width="8" height="8"><rect width="8" height="8" rx="2" fill="#639922"/></svg>Resourceful — 1 (33%)</span>
+        <span class="li"><svg width="8" height="8"><rect width="8" height="8" rx="2" fill="#EF9F27"/></svg>Surface Checker — 1 (33%)</span>
+        <span class="li"><svg width="8" height="8"><rect width="8" height="8" rx="2" fill="#378ADD"/></svg>Trial &amp; Error — 1 (33%)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: AI Prescriptions (full height) -->
+  <div class="pnl rspan">
+    <p class="ptitle">AI Prescriptions — Action Center</p>
+    <div id="aiWrap" class="aipanel">
+      <div class="ai-sec">
+        <p class="ai-stitle">Awaiting Selection</p>
+        <p style="font-size:12px;color:var(--muted);line-height:1.7">Select a student from the panel below to generate AI-powered challenge insights and recommended teacher actions tailored to their learner profile.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM LEFT: Individual Student -->
+  <div class="pnl" style="grid-column:1;grid-row:2">
+    <p class="ptitle">Individual Student View</p>
+    <select id="stu" style="margin-bottom:10px">
+      <option value="">— Select student —</option>
+      <option value="ST_9901">ST_9901</option>
+      <option value="ST_9902">ST_9902</option>
+      <option value="ST_9903">ST_9903</option>
+    </select>
+    <div style="display:flex;gap:8px;align-items:flex-start">
+      <div style="position:relative;height:160px;flex:1;min-width:0">
+        <canvas id="radarChart" role="img" aria-label="Radar chart comparing selected student scores against class average on three rubric criteria">Student vs class average.</canvas>
+      </div>
+      <div id="estats" style="display:none;flex-shrink:0;width:100px">
+        <p style="font-size:9.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Engagement</p>
+        <div class="estat"><p class="elabel">Feedback view</p><p class="evalue" id="eFeedback">—</p></div>
+        <div class="estat"><p class="elabel">Links clicked</p><p class="evalue" id="eLinks">—</p></div>
+        <div class="estat"><p class="elabel">AI interactions</p><p class="evalue" id="eAI">—</p></div>
+      </div>
+    </div>
+    <div id="stuLegend" style="display:none;margin-top:8px" class="leg">
+      <span class="li"><svg width="8" height="8"><rect width="8" height="8" rx="2" fill="rgba(122,127,148,0.5)"/></svg>Class avg</span>
+      <span class="li" id="stuLegItem"></span>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const DATA = {
+  ST_9901: { type:'Resourceful Learner', badge:'b-res', scores:[3,3,3], feedbackTime:'60s', links:1, aiInt:2,
+    context:'ST_9901 started with scores (1,1,1), proactively clicked Syllabus.pdf and the UNC Learning Center external link, then achieved maximum scores (3,3,3) across all criteria. 2 AI interactions total.' },
+  ST_9902: { type:'Surface Checker', badge:'b-sur', scores:[0,0,0], feedbackTime:'45s', links:0, aiInt:0,
+    context:'ST_9902 viewed feedback for 45 seconds then immediately ended the session. Zero AI interactions, zero resource clicks, and no rubric scores recorded.' },
+  ST_9903: { type:'Trial & Error Learner', badge:'b-tri', scores:[2,2,1], feedbackTime:'75s', links:0, aiInt:1,
+    context:'ST_9903 had 1 AI interaction and received scores (2,2,1), slightly above class average on Interpreting/Action Plan but below on Resource Mentioning. Clicked zero external resource links.' }
+};
+const classAvg = [1.67, 1.67, 1.33];
+const BADGE_COLORS = { 'b-res':'#8ecf4a', 'b-sur':'#f0a830', 'b-tri':'#5aabf0' };
+
+Chart.defaults.color = '#7a7f94';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+
+new Chart(document.getElementById('trendChart'), {
+  type: 'line',
+  data: {
+    labels: ['Wk 1','Wk 2','Wk 3','Wk 4','Wk 5','Wk 6','Wk 7','Wk 8'],
+    datasets: [
+      { label:'Interpreting', data:[.80,1.00,1.15,1.25,1.38,1.48,1.58,1.67], borderColor:'#378ADD', backgroundColor:'transparent', tension:.4, pointRadius:2.5, borderWidth:2, pointBackgroundColor:'#378ADD' },
+      { label:'Action Plan',  data:[.70,.88,1.05,1.18,1.32,1.45,1.57,1.67],  borderColor:'#1D9E75', backgroundColor:'transparent', tension:.4, pointRadius:2.5, borderWidth:2, borderDash:[5,3], pointBackgroundColor:'#1D9E75' },
+      { label:'Resource',     data:[.50,.65,.78,.88,.98,1.08,1.20,1.33],      borderColor:'#EF9F27', backgroundColor:'transparent', tension:.4, pointRadius:2.5, borderWidth:2, borderDash:[2,2], pointBackgroundColor:'#EF9F27' }
+    ]
+  },
+  options: { responsive:true, maintainAspectRatio:false,
+    plugins: { legend:{display:false}, tooltip:{mode:'index',intersect:false,callbacks:{label:c=>' '+c.dataset.label+': '+c.parsed.y.toFixed(2)}} },
+    scales: {
+      y: { min:0, max:3, ticks:{stepSize:1,font:{size:9}}, grid:{color:'rgba(255,255,255,0.05)'}, border:{display:false} },
+      x: { ticks:{font:{size:9}}, grid:{display:false}, border:{display:false} }
+    }
+  }
+});
+
+new Chart(document.getElementById('donutChart'), {
+  type: 'doughnut',
+  data: { labels:['Resourceful','Surface','Trial & Error'], datasets:[{ data:[1,1,1], backgroundColor:['#639922','#EF9F27','#378ADD'], borderWidth:0, hoverOffset:4 }] },
+  options: { responsive:true, maintainAspectRatio:false, cutout:'62%',
+    plugins: { legend:{display:false}, tooltip:{callbacks:{label:c=>' '+c.label+': 33%'}} } }
+});
+
+let radarChart = new Chart(document.getElementById('radarChart'), {
+  type: 'radar',
+  data: {
+    labels: ['Interpreting','Action Plan','Resource\nMentioning'],
+    datasets: [
+      { label:'Class Avg', data:classAvg, borderColor:'rgba(122,127,148,0.5)', backgroundColor:'rgba(122,127,148,0.06)', borderWidth:1.5, pointRadius:2, pointBackgroundColor:'rgba(122,127,148,0.5)' },
+      { label:'Student',   data:[0,0,0],  borderColor:'#378ADD', backgroundColor:'rgba(55,138,221,0.1)', borderWidth:2, pointRadius:3, pointBackgroundColor:'#378ADD' }
+    ]
+  },
+  options: { responsive:true, maintainAspectRatio:false,
+    plugins: { legend:{display:false} },
+    scales: { r: { min:0, max:3,
+      ticks:{stepSize:1,font:{size:9},backdropColor:'transparent',color:'rgba(122,127,148,0.7)'},
+      pointLabels:{font:{size:9.5},color:'#7a7f94'},
+      grid:{color:'rgba(255,255,255,0.06)'}, angleLines:{color:'rgba(255,255,255,0.06)'}
+    }}
+  }
+});
+
+document.getElementById('stu').addEventListener('change', async e => {
+  const id = e.target.value; if (!id) return;
+  const d = DATA[id];
+
+  radarChart.data.datasets[1].data = d.scores;
+  radarChart.data.datasets[1].label = id;
+  radarChart.update();
+
+  document.getElementById('estats').style.display = 'block';
+  document.getElementById('eFeedback').textContent = d.feedbackTime;
+  document.getElementById('eLinks').textContent = d.links;
+  document.getElementById('eAI').textContent = d.aiInt;
+
+  const leg = document.getElementById('stuLegend');
+  leg.style.display = 'flex';
+  const col = BADGE_COLORS[d.badge];
+  document.getElementById('stuLegItem').innerHTML = `<svg width="8" height="8"><rect width="8" height="8" rx="2" fill="${col}"/></svg>${id}`;
+
+  document.getElementById('aiWrap').innerHTML = `<div class="ai-sec"><p class="ai-stitle">Analyzing ${id}</p><p class="loading">Generating AI prescriptions…</p></div>`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: `You are an educational AI assistant. Return ONLY valid JSON, no markdown, no preamble:
+{"challenges":"2-3 sentence plain-English summary of student challenges grounded in data","actions":["specific action 1","specific action 2","specific action 3"],"mastery":true/false}
+Actions must be specific, concrete, tailored to the learner type. mastery true only for Resourceful Learner with high scores.`,
+        messages: [{ role:'user', content:`Student: ${id}\nLearner Type: ${d.type}\nScores (0-3): Interpreting=${d.scores[0]}, Action Plan=${d.scores[1]}, Resource Mentioning=${d.scores[2]}\nClass Avg: 1.67, 1.67, 1.33\nFeedback View Time: ${d.feedbackTime}\nLinks Clicked: ${d.links}\nAI Interactions: ${d.aiInt}\nSession Log: ${d.context}` }]
+      })
+    });
+    const data = await resp.json();
+    const txt = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+    const p = JSON.parse(txt.replace(/```json|```/g,'').trim());
+
+    document.getElementById('aiWrap').innerHTML = `<div class="aipanel">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span class="badge ${d.badge}">${d.type}</span>
+        <span style="font-size:10.5px;color:var(--muted)">Student ${id}</span>
+      </div>
+      <div class="ai-sec">
+        <p class="ai-stitle">Identified Challenges</p>
+        <p class="ai-body">${p.challenges}</p>
+      </div>
+      <div class="ai-sec">
+        <p class="ai-stitle">Recommended Actions</p>
+        ${p.actions.map((a,i) => `<div class="act-item"><span class="act-num">${i+1}</span><span>${a}</span></div>`).join('')}
+      </div>
+      ${p.mastery ? `<div class="ai-sec mastery-sec">
+        <p class="ai-stitle mastery-title">Mastery Detected</p>
+        <p class="ai-body">Full mastery confirmed across all rubric criteria. Consider inviting this student to serve as a peer mentor for the next assignment cycle.</p>
+      </div>` : ''}
+    </div>`;
+  } catch(err) {
+    document.getElementById('aiWrap').innerHTML = `<div class="ai-sec"><p class="ai-stitle">Error</p><p style="font-size:12px;color:var(--muted)">${err.message}</p></div>`;
+  }
+});
+</script>
+</body>
+</html>
